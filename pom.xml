@@ -66,6 +66,13 @@
             <version>3.25.3</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Headless browser for SPA rendering -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.60.0</version>
+        </dependency>
     </dependencies>
 
     <build>
