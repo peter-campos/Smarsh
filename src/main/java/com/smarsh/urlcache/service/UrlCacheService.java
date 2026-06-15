@@ -27,6 +27,16 @@ public class UrlCacheService {
         this.cacheRepository = cacheRepository;
     }
 
+    /**
+     * Main entry point: checks the local cache for the given URL.
+     * <p>
+     * On a cache hit the stored HTML is read from disk and printed. On a miss the page is
+     * fetched (with SPA fallback via Playwright if needed), persisted to the cache, and then
+     * printed. In both cases the result is written to {@code stdout} via {@link #printResult}.
+     *
+     * @param url the URL to look up or fetch
+     * @throws CacheFetchException if the network fetch or a disk read/write fails
+     */
     public void process(String url) throws CacheFetchException {
         log.info("Checking cache for URL: {}", url);
 
@@ -61,6 +71,7 @@ public class UrlCacheService {
         }
     }
 
+    /** Prints the fetch result block to {@code stdout}, pretty-printing the HTML via Jsoup. */
     private void printResult(Instant fetchedAt, String url, String content) {
         System.out.println();
         System.out.println("=== RESULT ===");

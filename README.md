@@ -2,6 +2,8 @@
 
 A Java 21 command-line tool that fetches a web page and caches it locally. Each URL is fetched from the network only once; subsequent runs read from the local cache.
 
+Supports both static/server-rendered pages (fetched via lightweight HTTP) and Single-Page Applications built with React, Vue, or similar frameworks (rendered via a headless Playwright browser).
+
 ## Build
 
 ```bash
@@ -55,7 +57,7 @@ On subsequent runs (cache hit), the same result is printed but no network reques
 
 | Class | Responsibility |
 |---|---|
-| `WebContentFetcher` | Fetches a URL via `java.net.http.HttpClient`; extracts the HTML `<title>` via Jsoup for logging |
+| `WebContentFetcher` | Fetches a URL via `java.net.http.HttpClient`. Detects SPAs (empty `#root`/`#app` or 3+ bundle scripts) and falls back to a headless Playwright browser for JavaScript rendering |
 | `FileCacheRepository` | Reads and writes cache entries to `./cache/`; each entry is a `<url-hash>.html` + `<url-hash>.meta` file pair |
 | `CacheEntry` | Immutable record: `url`, `fetchedAt`, `filePath`, `contentHash` (SHA-256 of content) |
 | `UrlCacheService` | Orchestrates the cache-check → fetch-or-read → print flow |
@@ -67,6 +69,15 @@ On subsequent runs (cache hit), the same result is printed but no network reques
 - File naming: SHA-256 hex of the URL — avoids filesystem-unsafe characters and collisions.
 - Content file: `<hash>.html` (UTF-8).
 - Metadata file: `<hash>.meta` — stores `url`, `fetchedAt` (ISO-8601), and `contentHash` (SHA-256 of content).
+
+## SPA detection
+
+`WebContentFetcher` uses a two-pass strategy:
+
+1. **HTTP fetch (jsoup)** — fast, zero overhead, sufficient for static and server-rendered pages.
+2. **Playwright fallback** — triggered when the response contains an empty `#root` or `#app` element, or three or more JS bundle/chunk scripts. A headless Chromium browser loads the page, waits for the network to go idle, and then waits for the SPA root element to have rendered children before capturing the HTML.
+
+A real browser user-agent is set to avoid bot-detection middleware serving empty shells.
 
 ## Assumptions
 

@@ -27,6 +27,15 @@ public class FileCacheRepository {
         this.cacheDir = cacheDir;
     }
 
+    /**
+     * Looks up the cache for the given URL.
+     * <p>
+     * Both the {@code .html} and {@code .meta} files must exist and be readable for a hit to
+     * be returned. Corrupt or missing metadata is treated as a cache miss with a warning log.
+     *
+     * @param url the URL to look up
+     * @return an {@link Optional} containing the cache entry, or empty on a miss
+     */
     public Optional<CacheEntry> find(String url) {
         String urlHash = sha256Hex(url);
         Path htmlFile = cacheDir.resolve(urlHash + ".html");
@@ -50,6 +59,18 @@ public class FileCacheRepository {
         }
     }
 
+    /**
+     * Persists the fetched HTML and its metadata to the cache directory.
+     * <p>
+     * Creates two files: {@code <url-hash>.html} (raw HTML, UTF-8) and
+     * {@code <url-hash>.meta} (plain key=value with {@code url}, {@code fetchedAt},
+     * and {@code contentHash}). The cache directory is created if it does not exist.
+     *
+     * @param url       the source URL
+     * @param content   the HTML content to store
+     * @param fetchedAt the timestamp to record in metadata
+     * @throws CacheFetchException if any file write fails
+     */
     public void write(String url, String content, Instant fetchedAt) throws CacheFetchException {
         try {
             Files.createDirectories(cacheDir);
@@ -72,6 +93,13 @@ public class FileCacheRepository {
         }
     }
 
+    /**
+     * Reads and returns the cached HTML for the given entry.
+     *
+     * @param entry the cache entry whose file path to read
+     * @return the HTML content as a UTF-8 string
+     * @throws CacheFetchException if the file cannot be read
+     */
     public String readContent(CacheEntry entry) throws CacheFetchException {
         try {
             return Files.readString(entry.filePath(), StandardCharsets.UTF_8);
@@ -80,6 +108,7 @@ public class FileCacheRepository {
         }
     }
 
+    /** Parses a {@code key=value} metadata string into a map, one entry per line. */
     private static Map<String, String> parseMeta(String raw) {
         Map<String, String> props = new HashMap<>();
         for (String line : raw.split("\n")) {
@@ -91,6 +120,7 @@ public class FileCacheRepository {
         return props;
     }
 
+    /** Returns the SHA-256 hex digest of the given string (UTF-8 encoded). */
     static String sha256Hex(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
